@@ -136,5 +136,4 @@ Released under the MIT License; see [`LICENSE`](LICENSE).
 
 ## Acknowledgments
 
-Supported by the NSF Industry–University Cooperative Research Center (I/UCRC) CARTA
-at the University of Maryland, Baltimore County.
+Supported by the NSF Industry–University Cooperative Research Center (I/UCRC) CARTA.
