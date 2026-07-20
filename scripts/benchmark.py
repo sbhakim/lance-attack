@@ -17,7 +17,10 @@ except ModuleNotFoundError:  # direct ``python scripts/benchmark.py`` execution
     from _common import Config
 
 from lance.experiment import GridSpec, run_grid, to_markdown
+from lance.models import TGNLite, GraphMixerLite
 from lance.utils import get_logger
+
+_VICTIMS = {"tgnlite": TGNLite, "graphmixer": GraphMixerLite}
 
 _LOG = get_logger()
 
@@ -35,6 +38,8 @@ def main() -> None:
     ap.add_argument("--ptb-rate", type=float, default=None)
     ap.add_argument("--hist-neg", type=float, default=None,
                     help="fraction of historical negatives at eval (TGB-style, 0..1)")
+    ap.add_argument("--victim", choices=list(_VICTIMS), default="tgnlite",
+                    help="victim architecture; the surrogate is always TGNLite")
     ap.add_argument("--out", default="artifacts")
     args = ap.parse_args()
 
@@ -53,8 +58,9 @@ def main() -> None:
 
     spec = GridSpec(attacks=args.attacks, defenses=args.defenses, seeds=args.seeds)
     _LOG.info(f"benchmark {cfg.data.name}: defenses={args.defenses} "
-              f"attacks={args.attacks} seeds={args.seeds} epochs={cfg.train.epochs}")
-    result = run_grid(cfg, spec)
+              f"attacks={args.attacks} seeds={args.seeds} epochs={cfg.train.epochs} "
+              f"victim={args.victim}")
+    result = run_grid(cfg, spec, victim_cls=_VICTIMS[args.victim])
     md = to_markdown(result)
     print("\n" + md + "\n")
 

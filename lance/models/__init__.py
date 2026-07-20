@@ -6,7 +6,8 @@ modern torch+CUDA stack without DGL. It exposes the hooks the defense needs:
 per-node ``staleness`` (for C2) and ``surrogate_scores`` (for C1/HIA).
 """
 from lance.models.tgn import TGNLite
+from lance.models.graphmixer import GraphMixerLite
 from lance.models.link_predictor import LinkPredictor
 from lance.models.memory import TimeEncoder
 
-__all__ = ["TGNLite", "LinkPredictor", "TimeEncoder"]
+__all__ = ["TGNLite", "GraphMixerLite", "LinkPredictor", "TimeEncoder"]

@@ -44,9 +44,18 @@ class GridSpec:
 
 
 def _model(cfg, data):
+    """The attacker's surrogate is always the memory-based TGNLite."""
     m = cfg.model
     return TGNLite(data.num_nodes, data.num_feats, m.memory_dim, m.time_dim,
                    m.embedding_dim, m.predictor_hidden, m.dropout)
+
+
+def _victim(cfg, data, victim_cls):
+    """Build the victim. It may differ from the surrogate (transfer study);
+    only TGNLite consumes the model config, other families use their defaults."""
+    if victim_cls is TGNLite:
+        return _model(cfg, data)
+    return victim_cls(data.num_nodes, data.num_feats)
 
 
 def _make_score_fn(model, device):
@@ -57,20 +66,22 @@ def _make_score_fn(model, device):
     return fn
 
 
-def _train_test(cfg, data, defense_mode, device, history=None, negative_dst_pool=None):
+def _train_test(cfg, data, defense_mode, device, history=None,
+                negative_dst_pool=None, victim_cls=TGNLite):
     cfg = copy.deepcopy(cfg)
     cfg.defense.mode = defense_mode
     # Pair conditions within a seed: model initialization, dropout, defense
     # sampling, and training-time randomness all restart from the same state.
     seed_everything(cfg.train.seed, deterministic=True)
-    model = _model(cfg, data)
+    model = _victim(cfg, data, victim_cls)
     defense = build_defense(cfg, device=device)
     tr = Trainer(model, cfg, device=device)
     tr.fit(data, defense=defense, verbose=False)
     return tr.test(data, history=history, negative_dst_pool=negative_dst_pool)
 
 
-def run_grid(cfg, spec: GridSpec, device: str | None = None) -> dict:
+def run_grid(cfg, spec: GridSpec, device: str | None = None,
+             victim_cls=TGNLite) -> dict:
     device = device or resolve_device(cfg.train.device)
     # cell[(defense, attack)] -> list of metric dicts across seeds
     cells: dict[tuple[str, str], list[dict]] = {}
@@ -90,7 +101,8 @@ def run_grid(cfg, spec: GridSpec, device: str | None = None) -> dict:
         clean_dst_pool = data.split("train")[1]
 
         # reference: undefended victim on clean data
-        clean = _train_test(cfg, data, "none", device, clean_history, clean_dst_pool)
+        clean = _train_test(cfg, data, "none", device, clean_history,
+                            clean_dst_pool, victim_cls=victim_cls)
         clean_ref.append(clean["mrr"])
 
         # attacker's surrogate (clean undefended) + importance map
@@ -134,12 +146,14 @@ def run_grid(cfg, spec: GridSpec, device: str | None = None) -> dict:
         # every defense on clean (retention) and on each poisoned graph
         for dfn in spec.defenses:
             retention[dfn].append(_train_test(
-                cfg, data, dfn, device, clean_history, clean_dst_pool)["mrr"])
+                cfg, data, dfn, device, clean_history, clean_dst_pool,
+                victim_cls=victim_cls)["mrr"])
             for atk in spec.attacks:
                 if atk == "none":
                     continue
                 m = _train_test(
-                    cfg, poisoned[atk], dfn, device, clean_history, clean_dst_pool)
+                    cfg, poisoned[atk], dfn, device, clean_history, clean_dst_pool,
+                    victim_cls=victim_cls)
                 cells.setdefault((dfn, atk), []).append(m)
         _LOG.info(f"seed {seed} done (clean MRR={clean['mrr']:.4f})")
 
