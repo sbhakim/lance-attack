@@ -29,7 +29,8 @@ ATTACKS = ["none", "random", "random_delete", "random_inject",
            "degree", "tspear", "hia", "hia_adaptive",
            "lance", "lance_fixed", "lance_inject", "lance_delete",
            "lance_random_target", "lance_query", "lance_query_inject",
-           "lance_meta", "lance_meta_inject", "lance_meta_delete"]
+           "lance_meta", "lance_meta_inject", "lance_meta_delete",
+           "lance_meta_hard"]
 
 
 def run_attack(name: str, src, dst, t, feat, num_nodes, *, impact=None,
@@ -79,7 +80,8 @@ def run_attack(name: str, src, dst, t, feat, num_nodes, *, impact=None,
             allow_delete=name not in {"lance_inject", "lance_query_inject"},
             allow_inject=name != "lance_delete",
             query_aware_injection=name in {"lance_query", "lance_query_inject"})
-    if name in {"lance_meta", "lance_meta_inject", "lance_meta_delete"}:
+    if name in {"lance_meta", "lance_meta_inject", "lance_meta_delete",
+                "lance_meta_hard"}:
         assert score_fn is not None, "lance_meta needs a surrogate score_fn"
         assert grad_scorer is not None, "lance_meta needs a MetaGradientScorer"
         imp = np.ones(num_nodes) if impact is None else impact
@@ -88,5 +90,6 @@ def run_attack(name: str, src, dst, t, feat, num_nodes, *, impact=None,
             int(ptb_rate * len(src)), high_impact_frac, seed=seed,
             allow_delete=name != "lance_meta_inject",
             allow_inject=name != "lance_meta_delete",
-            grad_scorer=grad_scorer)
+            grad_scorer=grad_scorer,
+            hard_unlearn=name == "lance_meta_hard")
     raise ValueError(f"unknown attack: {name}")

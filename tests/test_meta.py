@@ -103,6 +103,27 @@ def test_meta_scorer_is_robust_and_side_effect_free(tiny_data, tiny_cfg):
     assert float(empty_scorer.G.abs().sum()) == 0.0
 
 
+def test_lance_meta_hard_restricts_to_surprising_injections(tiny_data, tiny_cfg):
+    model = _surrogate(tiny_data, tiny_cfg)
+    s, d, t, f = tiny_data.split("train")
+    imp = compute_impact(s, d, tiny_data.num_nodes, betweenness_k=20)
+    scorer = MetaGradientScorer(model, s, d, t, f, tiny_data.num_nodes, "cpu",
+                                n_queries=64, n_neg=10, seed=0)
+    score = _score_fn(model)
+    common = dict(impact=imp, score_fn=score, ptb_rate=0.2, seed=0, grad_scorer=scorer)
+    hard = run_attack("lance_meta_hard", s, d, t, f, tiny_data.num_nodes, **common)
+    base = run_attack("lance_meta", s, d, t, f, tiny_data.num_nodes, **common)
+
+    assert hard.diagnostics["grad_scored"] is True
+    assert hard.n_deleted + hard.n_injected >= 1
+    # the hard variant's injected edges sit in the low-likelihood tail: their mean
+    # surrogate likelihood should not exceed the unrestricted meta variant's
+    if hard.n_injected and base.n_injected:
+        hard_yhat = score(hard.injected_src, hard.injected_dst, hard.injected_t).mean()
+        base_yhat = score(base.injected_src, base.injected_dst, base.injected_t).mean()
+        assert hard_yhat <= base_yhat + 1e-6
+
+
 def test_lance_meta_components(tiny_data, tiny_cfg):
     model = _surrogate(tiny_data, tiny_cfg)
     s, d, t, f = tiny_data.split("train")

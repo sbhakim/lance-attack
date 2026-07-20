@@ -149,7 +149,8 @@ def adaptive_hybrid_attack(src, dst, t, feat, num_nodes, impact, score_fn,
                            budget, high_impact_frac=0.1, seed=0,
                            allow_delete=True, allow_inject=True,
                            query_aware_injection=False,
-                           grad_scorer=None) -> AttackResult:
+                           grad_scorer=None, hard_unlearn=False,
+                           hard_unlearn_q=0.25) -> AttackResult:
     """Spend ``budget`` edits greedily over deletion and injection candidates.
 
     By default edits are ranked by a heuristic priority (likelihood extremity
@@ -228,7 +229,16 @@ def adaptive_hybrid_attack(src, dst, t, feat, num_nodes, impact, score_fn,
         impe_i = np.maximum(impact[cu], impact[cv])
         if grad_scorer is not None:
             raw_i = grad_scorer.injection_damage(cu, cv, ct, inj_feat_candidates)
-            prio_i = np.where(raw_i > 0.0, raw_i, -np.inf)
+            gate = raw_i > 0.0
+            if hard_unlearn and len(yi):
+                # Restrict to the low-likelihood (surprising) tail, i.e. the
+                # bottom ``hard_unlearn_q`` fraction of surrogate likelihood. The
+                # unlearning measurement shows the victim internalizes
+                # damage-aligned injections it finds plausible; surprising edges
+                # are the ones it cannot easily reconcile, so they stay disruptive
+                # under retraining.
+                gate = gate & (yi <= np.quantile(yi, hard_unlearn_q))
+            prio_i = np.where(gate, raw_i, -np.inf)
         elif query_aware_injection:
             ctx = _injection_context_features(src, dst, t, cu, cv, ct, num_nodes)
             prio_i = 0.60 * (

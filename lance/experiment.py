@@ -32,7 +32,8 @@ from lance.utils import seed_everything, get_logger
 _LOG = get_logger()
 
 # Attacks whose edit scoring needs the differentiable surrogate (meta-gradient).
-_META_ATTACKS = {"lance_meta", "lance_meta_inject", "lance_meta_delete"}
+_META_ATTACKS = {"lance_meta", "lance_meta_inject", "lance_meta_delete",
+                 "lance_meta_hard"}
 
 
 @dataclass
