@@ -17,10 +17,10 @@ except ModuleNotFoundError:  # direct ``python scripts/benchmark.py`` execution
     from _common import Config
 
 from lance.experiment import GridSpec, run_grid, to_markdown
-from lance.models import TGNLite, GraphMixerLite
+from lance.models import TGNLite, GraphMixerLite, TGATLite
 from lance.utils import get_logger
 
-_VICTIMS = {"tgnlite": TGNLite, "graphmixer": GraphMixerLite}
+_VICTIMS = {"tgnlite": TGNLite, "graphmixer": GraphMixerLite, "tgat": TGATLite}
 
 _LOG = get_logger()
 
