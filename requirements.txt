@@ -1,0 +1,12 @@
+# Runtime dependencies for LANCE.
+# Pinned loosely; developed and tested against Python 3.11 and PyTorch 2.x
+# (CUDA optional). leidenalg and igraph are optional: without them, community
+# detection falls back to NetworkX's Louvain implementation.
+torch>=2.0
+numpy>=1.24
+pandas>=2.0
+networkx>=3.0
+scikit-learn>=1.2
+scipy>=1.10
+pyyaml>=6.0
+tqdm>=4.65

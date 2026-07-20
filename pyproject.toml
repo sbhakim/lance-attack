@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lance"
+version = "0.1.0"
+description = "LANCE: limited-knowledge adaptive poisoning of temporal graph neural networks."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Safayat Bin Hakim", email = "shakim3@umbc.edu" }]
+dependencies = [
+    "torch>=2.0",
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "networkx>=3.0",
+    "scikit-learn>=1.2",
+    "scipy>=1.10",
+    "pyyaml>=6.0",
+    "tqdm>=4.65",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "ruff>=0.1", "mypy>=1.0"]
+leiden = ["leidenalg>=0.9", "python-igraph>=0.10"]
+
+[project.scripts]
+lance-train = "scripts.train:main"
+lance-attack = "scripts.run_attack:main"
+lance-eval = "scripts.evaluate:main"
+
+[tool.setuptools.packages.find]
+include = ["lance*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

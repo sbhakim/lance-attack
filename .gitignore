@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+.ipynb_checkpoints/
+
+# Tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Project artifacts (models, processed tensors, perturbed graphs, logs)
+artifacts/**
+!artifacts/.gitkeep
+*.pt
+*.ckpt
+*.log
+
+# Data. Large/downloaded benchmarks and locally generated data stay out of the
+# repo (see configs/*.yaml -> data.root); `/data/` is anchored so the lance/data/
+# source package is not ignored. Small, deliberately-bundled datasets may be
+# committed under datasets/.
+/data/
+*.csv
+!datasets/**
+
+# Documentation: keep only README.md (no other Markdown, incl. result tables)
+*.md
+!README.md
+
+# OS / editor cruft
+.DS_Store
+.idea/
+.vscode/
