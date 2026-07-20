@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/lance-logo.png" alt="LANCE" width="460">
+</p>
+
 # LANCE
 
 **Limited-knowledge adaptive poisoning of temporal graph neural networks.**
