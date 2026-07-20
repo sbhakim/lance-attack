@@ -1,0 +1,49 @@
+# Default hyperparameters. Dataset configs inherit these implicitly by
+# overriding only what differs (the loader fills unspecified fields from the
+# dataclass defaults in lance/config.py).
+data:
+  root: ../Dataset
+  name: mooc
+  fmt: jodie
+  max_events: null
+  val_ratio: 0.15
+  test_ratio: 0.15
+
+model:
+  memory_dim: 100
+  time_dim: 100
+  embedding_dim: 100
+  predictor_hidden: 80
+  dropout: 0.1
+
+train:
+  epochs: 10
+  batch_size: 200
+  lr: 0.001
+  num_neg_train: 1
+  grad_clip: 1.0
+  device: auto
+  seed: 0
+
+eval:
+  num_neg: 100
+  hits_k: 10
+  historical_neg_frac: 0.0
+
+attack:
+  ptb_rate: 0.1
+  del_percentile: 85.0
+  inj_percentile: 10.0
+  impact_weights: [0.5, 0.3, 0.2]
+  betweenness_k: 200
+
+defense:
+  mode: dtshield
+  screen_q: 0.10
+  impute_q: 0.05
+  band_low: 0.25
+  band_high: 3.0
+  clean_prefix_frac: 0.2
+  adv_every: 0
+  adv_ptb_rate: 0.05
+  smooth_lambda: 0.1

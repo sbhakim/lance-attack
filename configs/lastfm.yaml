@@ -1,0 +1,6 @@
+data: { root: ../Dataset, name: lastfm, fmt: jodie }
+model: { memory_dim: 100, time_dim: 100, embedding_dim: 100 }
+train: { epochs: 20, batch_size: 200, lr: 0.001, device: auto, seed: 0 }
+eval: { num_neg: 100, hits_k: 10 }
+attack: { ptb_rate: 0.1 }
+defense: { mode: none }

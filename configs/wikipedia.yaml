@@ -1,0 +1,6 @@
+data: { root: ../Dataset, name: wikipedia, fmt: jodie }
+model: { memory_dim: 172, time_dim: 100, embedding_dim: 100 }  # wiki has 172 edge feats
+train: { epochs: 30, batch_size: 200, lr: 0.0001, device: auto, seed: 0 }
+eval: { num_neg: 100, hits_k: 10, historical_neg_frac: 0.5 }
+attack: { ptb_rate: 0.1 }
+defense: { mode: dtshield, adv_every: 5, smooth_lambda: 0.1 }

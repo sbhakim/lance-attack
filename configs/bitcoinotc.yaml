@@ -1,0 +1,8 @@
+# Bitcoin-OTC is a signed trust network (no rich edge features); the loader
+# reads the SNAP `source,target,rating,timestamp` schema via fmt: bitcoinotc.
+data: { root: ../Dataset, name: bitcoinotc, fmt: bitcoinotc }
+model: { memory_dim: 64, time_dim: 64, embedding_dim: 64, predictor_hidden: 64 }
+train: { epochs: 30, batch_size: 128, lr: 0.001, device: auto, seed: 0 }
+eval: { num_neg: 100, hits_k: 10 }
+attack: { ptb_rate: 0.1 }
+defense: { mode: dtshield, adv_every: 5, smooth_lambda: 0.1 }
