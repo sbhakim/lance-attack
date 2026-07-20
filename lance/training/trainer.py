@@ -70,7 +70,11 @@ class Trainer:
         return loss
 
     # ------------------------------------------------------------------
-    def fit(self, data, defense=None, verbose: bool = True):
+    def fit(self, data, defense=None, verbose: bool = True, monitor_edges=None):
+        """Train the victim. If ``monitor_edges`` (an :class:`EdgeBatch`) is
+        given, each epoch also records the victim's mean predicted probability
+        on those edges under ``adv_edge_score`` -- used to track how strongly a
+        poisoned model comes to treat injected adversarial edges as real."""
         c = self.cfg
         opt = torch.optim.Adam(self.model.parameters(), lr=c.train.lr,
                                weight_decay=c.train.weight_decay)
@@ -129,11 +133,24 @@ class Trainer:
                     window_loss, window_n = 0.0, 0
                     self.model.detach_state()
 
+            # Persistence probe: how strongly does the current model score the
+            # injected edges? Measured from the end-of-train memory, before eval
+            # advances it further.
+            adv_score = None
+            if monitor_edges is not None and len(monitor_edges):
+                self.model.eval()
+                with torch.no_grad():
+                    adv_score = float(self.model.surrogate_scores(
+                        monitor_edges.src, monitor_edges.dst, monitor_edges.t).mean().item())
+
             val = evaluate_link_prediction(self.model, data, "val", eval_neg,
                                            num_neg=c.eval.num_neg, k=c.eval.hits_k,
                                            batch_size=c.train.batch_size, device=self.device,
                                            history=eval_hist, hist_frac=hist_frac)
-            history.append({"epoch": epoch, "loss": total, **val})
+            row = {"epoch": epoch, "loss": total, **val}
+            if adv_score is not None:
+                row["adv_edge_score"] = adv_score
+            history.append(row)
             if verbose:
                 _LOG.info(f"epoch {epoch:02d} | loss {total:.4f} | "
                           f"val MRR {val['mrr']:.4f} | val Hit@{c.eval.hits_k} "
