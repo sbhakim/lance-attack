@@ -36,3 +36,12 @@ artifacts/**
 .DS_Store
 .idea/
 .vscode/
+
+# Figure-generation code and paper figures live outside this repo
+# (Summer-TA/Figure-Code, Summer-TA/Manuscirpt); this is a defensive guard in
+# case they are ever moved inside.
+Figure-Code/
+
+# Scratch / generator images (finalized assets belong in assets/)
+ChatGPT Image*.png
+Untitled design*.png
