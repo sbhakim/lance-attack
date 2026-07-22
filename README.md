@@ -22,13 +22,16 @@ construction, and so that every reported number is regenerable from the reposito
 
 ## Status and scope
 
-This is an attack-first **research prototype**, not a finished state-of-the-art
-attack. Under the hardened protocol, poisoning does measurably degrade a
-memory-based victim, but the current LANCE policy does **not yet outperform strong
-random baselines** (in particular `random_inject`). We report this directly: the
-contribution here is the corrected evaluation pipeline and the diagnostics that
-localize *why* the attack underperforms, which reduce the open problem to a concrete
-one — damage-aware injection and deletion scoring.
+LANCE is a **research prototype** evaluated in two regimes. In the *white-box*
+setting, where the victim shares the surrogate's architecture, targeted poisoning
+does **not** reliably beat random baselines — an *unlearning gap* (the retrained
+victim absorbs targeted injections while un-fittable random noise persists) explains
+why. In the more realistic *transfer* setting, where the attacker does not know the
+victim's architecture, LANCE is the **most reliably transferable attack across five
+datasets and two victim families**: its targeted deletions of high-impact edges
+damage unseen models where injected noise does not. The contribution is a rigorous,
+leakage-safe evaluation harness plus this transfer finding — and the argument that
+transferability, not white-box strength, is how such attacks should be measured.
 
 ## Highlights
 
@@ -47,6 +50,19 @@ one — damage-aware injection and deletion scoring.
   HIA, and component/targeting ablations of LANCE, so no result rests on a weak
   baseline.
 - **Pure PyTorch.** No DGL; runs on CPU or a single GPU.
+
+## How it works
+
+<p align="center">
+  <img src="assets/lance-architecture.png" alt="LANCE method: a limited-knowledge surrogate guides targeted edits whose damage transfers to unseen victim architectures" width="100%">
+</p>
+
+The attack trains a memory-based surrogate on the observable prefix (K2), scores
+node impact, and spends a small budget on **targeted deletions and injections**. The
+poisoned stream is then evaluated on **victim architectures the attacker never
+sees** — and the main result is that this targeted, deletion-driven poisoning
+**transfers** to those unseen models, where injected noise does not. DT-SHIELD (a
+deletion-aware defense) is a future extension.
 
 ## Repository layout
 
