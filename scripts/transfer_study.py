@@ -75,7 +75,13 @@ def main() -> None:
 
     out = {"dataset": wb["dataset"], "seeds": args.seeds,
            "clean_mrr_whitebox": wb["clean_mrr"],
-           "clean_mrr_transfer": tr["clean_mrr"], "rows": rows}
+           "clean_mrr_transfer": tr["clean_mrr"], "rows": rows,
+           # Without these the artifact cannot be compared against a benchmark
+           # run: an earlier Bitcoin-OTC study was left unusable because its
+           # epoch count and event cap were not recoverable from the output.
+           "config": wb["config"],
+           "provenance_whitebox": wb.get("provenance", {}),
+           "provenance_transfer": tr.get("provenance", {})}
     os.makedirs(args.out, exist_ok=True)
     with open(os.path.join(args.out, f"transfer_{cfg.data.name}.json"), "w") as fh:
         json.dump(out, fh, indent=2)

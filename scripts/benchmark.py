@@ -17,10 +17,11 @@ except ModuleNotFoundError:  # direct ``python scripts/benchmark.py`` execution
     from _common import Config
 
 from lance.experiment import GridSpec, run_grid, to_markdown
-from lance.models import TGNLite, GraphMixerLite, TGATLite
+from lance.models import TGNLite, GraphMixerLite, TGATLite, EdgeBankLite
 from lance.utils import get_logger
 
-_VICTIMS = {"tgnlite": TGNLite, "graphmixer": GraphMixerLite, "tgat": TGATLite}
+_VICTIMS = {"tgnlite": TGNLite, "graphmixer": GraphMixerLite, "tgat": TGATLite,
+            "edgebank": EdgeBankLite}
 
 _LOG = get_logger()
 
@@ -40,6 +41,19 @@ def main() -> None:
                     help="fraction of historical negatives at eval (TGB-style, 0..1)")
     ap.add_argument("--victim", choices=list(_VICTIMS), default="tgnlite",
                     help="victim architecture; the surrogate is always TGNLite")
+    ap.add_argument("--knowledge", choices=["k1", "k2"], default=None,
+                    help="attacker knowledge: k1 sees the whole training stream, "
+                         "k2 only the observable prefix (surrogate, Impact, "
+                         "candidates and budget are all prefix-derived)")
+    ap.add_argument("--high-impact-frac", type=float, default=None,
+                    help="fraction of nodes treated as high-impact; also sets how "
+                         "much of the edge pool is eligible for targeted deletion "
+                         "(1.0 makes Impact a pure ranking preference)")
+    ap.add_argument("--k2-budget", choices=["prefix", "matched"], default=None,
+                    help="K2 budget convention: 'prefix' spends ptb_rate x |prefix| "
+                         "(realistic); 'matched' spends ptb_rate x |train| inside the "
+                         "prefix, so a K1-vs-K2 comparison isolates knowledge from "
+                         "edit count")
     ap.add_argument("--out", default="artifacts")
     args = ap.parse_args()
 
@@ -52,6 +66,12 @@ def main() -> None:
         cfg.attack.ptb_rate = args.ptb_rate
     if args.hist_neg is not None:
         cfg.eval.historical_neg_frac = args.hist_neg
+    if args.high_impact_frac is not None:
+        cfg.attack.high_impact_frac = args.high_impact_frac
+    if args.knowledge is not None:
+        cfg.attack.knowledge = args.knowledge
+    if args.k2_budget is not None:
+        cfg.attack.k2_budget = args.k2_budget
     if args.ablation_suite:
         args.attacks = ["none", "lance", "lance_fixed", "lance_inject",
                         "lance_delete", "lance_random_target"]
