@@ -183,6 +183,16 @@ def adaptive_hybrid_attack(src, dst, t, feat, num_nodes, impact, score_fn,
     else:
         incident = np.array([(u in high_set) or (v in high_set) for u, v in zip(src, dst)])
         di = np.where(incident)[0] if allow_delete else np.array([], dtype=np.int64)
+        # If the impact-restricted pool is smaller than the budget the attack
+        # would under-spend and lose for a reason unrelated to its policy, so
+        # fall back to the remaining edges. Targeting is preserved as a *ranking*
+        # preference -- the impact term in the priority keeps high-impact edges
+        # ahead -- rather than as a hard pool restriction that can starve the
+        # budget. On the benchmark datasets the pool already exceeds the budget,
+        # so this only engages on small or weakly-concentrated graphs.
+        if allow_delete and len(di) < budget:
+            rest = np.where(~incident)[0]
+            di = np.concatenate([di, rest]).astype(np.int64)
     if len(di):
         yd = score_fn(src[di], dst[di], t[di])
         if grad_scorer is not None:
@@ -257,6 +267,21 @@ def adaptive_hybrid_attack(src, dst, t, feat, num_nodes, impact, score_fn,
             prio_i = 0.35 * (0.65 * _norm(1.0 - yi) + 0.35 * _norm(impe_i))
             inj_gate = yi <= np.quantile(yi, 0.05)
         if grad_scorer is None:                     # grad path is already gated
+            # The likelihood gate admits a fixed tail (5%, or 25% query-aware) of
+            # the candidate pool. When deletions cannot make up the rest -- the
+            # injection-only variants, where they are disabled outright -- that tail
+            # is smaller than the budget and the attack under-spends: injection-only
+            # reached just 50% of its budget, which is enough on its own to explain
+            # a variant that "improves the victim". Widen the tail only as far as
+            # filling the budget requires, so the gate stays a preference for
+            # low-likelihood edges rather than a cap on how much can be spent.
+            eligible_d = int(np.isfinite(prio_d).sum())
+            shortfall = budget - eligible_d - int(inj_gate.sum())
+            if shortfall > 0 and len(yi):
+                need = min(budget - eligible_d, len(yi))
+                if need > 0:
+                    thresh = np.partition(yi, need - 1)[need - 1]
+                    inj_gate = inj_gate | (yi <= thresh)
             prio_i = np.where(inj_gate, prio_i, -np.inf)
     else:
         yi = np.array([])
