@@ -126,6 +126,17 @@ def main() -> None:
         Trainer(victim, cfg, device=device).fit(poisoned, defense=None, verbose=False)
         victim_s = (_clock(device) - t0) / args.epochs
 
+        # Inference cost, reported separately from training because a deployed
+        # victim pays only this. One full ranking pass over the test split under
+        # the evaluation protocol, normalised per 1k queries so the figures are
+        # comparable across stream sizes.
+        trainer = Trainer(victim, cfg, device=device)
+        t0 = _clock(device)
+        trainer.test(poisoned)
+        infer_s = _clock(device) - t0
+        n_test = len(data.split("test")[0])
+        infer_ms_per_1k = 1000.0 * infer_s / max(n_test, 1) * 1000.0
+
         peak_mb = (torch.cuda.max_memory_allocated() / 1e6
                    if device == "cuda" else float("nan"))
 
@@ -137,6 +148,9 @@ def main() -> None:
             "meta_build_s": round(meta_build_s, 3),
             "lance_attack_s": round(lance_s, 3),
             "meta_attack_s": round(meta_attack_s, 3),
+            "infer_s": round(infer_s, 3),
+            "test_queries": int(n_test),
+            "infer_ms_per_1k_queries": round(infer_ms_per_1k, 1),
             "peak_mem_mb": round(peak_mb, 1),
         })
         _LOG.info(f"E={rows[-1]['events']:6d} nodes={data.num_nodes:5d} "
@@ -147,13 +161,15 @@ def main() -> None:
     with open(os.path.join(args.out, "scalability.json"), "w") as fh:
         json.dump({"config": base.to_dict(), "rows": rows}, fh, indent=2)
     header = ("| Events | Nodes | Train s/ep | Surrogate s/ep | Impact s | "
-              "Meta build s | LANCE attack s | Meta attack s | Peak mem MB |")
-    lines = [header, "|" + "---|" * 9]
+              "Meta build s | LANCE attack s | Meta attack s | Infer ms/1k | "
+              "Peak mem MB |")
+    lines = [header, "|" + "---|" * 10]
     for r in rows:
         lines.append(f"| {r['events']} | {r['nodes']} | {r['train_s_per_epoch']} "
                      f"| {r['surrogate_s_per_epoch']} | {r['impact_s']} "
                      f"| {r['meta_build_s']} | {r['lance_attack_s']} "
-                     f"| {r['meta_attack_s']} | {r['peak_mem_mb']} |")
+                     f"| {r['meta_attack_s']} | {r['infer_ms_per_1k_queries']} "
+                     f"| {r['peak_mem_mb']} |")
     with open(os.path.join(args.out, "scalability.md"), "w") as fh:
         fh.write("\n".join(lines) + "\n")
     print("\n".join(lines))
