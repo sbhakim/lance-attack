@@ -19,9 +19,12 @@ from lance.attack.baselines import (
     tspear_attack,
 )
 from lance.attack.lance import lance_attack, adaptive_hybrid_attack
+from lance.attack.oracle import (oracle_delete_attack, deletion_coverage,
+                                 query_support_value)
 
 __all__ = ["compute_impact", "hia_attack", "AttackResult", "lance_attack",
-           "adaptive_hybrid_attack", "run_attack", "ATTACKS"]
+           "adaptive_hybrid_attack", "run_attack", "ATTACKS",
+           "oracle_delete_attack", "deletion_coverage", "query_support_value"]
 
 # Attacks usable by the benchmark. "none" = leave the graph clean.
 # "lance" = LANCE's adaptive-budget hybrid perturbation (uses the passed surrogate).
@@ -30,13 +33,17 @@ ATTACKS = ["none", "random", "random_delete", "random_inject",
            "lance", "lance_fixed", "lance_inject", "lance_delete",
            "lance_random_target", "lance_query", "lance_query_inject",
            "lance_meta", "lance_meta_inject", "lance_meta_delete",
-           "lance_meta_hard"]
+           "lance_meta_hard",
+           # measurement instrument, not an attack: reads the test split to bound
+           # how much damage the deletion channel can do at a given budget.
+           "oracle_delete"]
 
 
 def run_attack(name: str, src, dst, t, feat, num_nodes, *, impact=None,
                score_fn=None, ptb_rate=0.1, seed=0,
                high_impact_frac=0.1, del_percentile=85.0,
-               inj_percentile=10.0, grad_scorer=None) -> AttackResult | None:
+               inj_percentile=10.0, grad_scorer=None,
+               test_ref=None) -> AttackResult | None:
     """Dispatch by name. Returns ``None`` for ``none`` (no perturbation).
 
     For the *full* LANCE attack with limited-knowledge surrogate and the K1/K2/K3
@@ -46,6 +53,12 @@ def run_attack(name: str, src, dst, t, feat, num_nodes, *, impact=None,
     """
     if name == "none":
         return None
+    if name == "oracle_delete":
+        assert test_ref is not None, (
+            "oracle_delete is a measurement bound and needs the test split; it is "
+            "not a valid attack under the threat model")
+        return oracle_delete_attack(src, dst, t, feat, num_nodes, test_ref[0],
+                                    test_ref[1], ptb_rate=ptb_rate, seed=seed)
     if name == "random":
         return random_attack(src, dst, t, feat, num_nodes, ptb_rate, seed)
     if name == "random_delete":
