@@ -1,0 +1,8 @@
+# DGB single-node-type graph (Poursafaei et al., NeurIPS 2022 D&B), TGN-preprocessed
+# layout; one shared node-id space. Added to span the surprise/reoccurrence axis.
+data: { root: ../Dataset, name: uci, fmt: dgb }
+model: { memory_dim: 100, time_dim: 100, embedding_dim: 100 }
+train: { epochs: 12, batch_size: 200, lr: 0.001, device: auto, seed: 0 }
+eval: { num_neg: 100, hits_k: 10, historical_neg_frac: 0.7 }
+attack: { ptb_rate: 0.3 }
+defense: { mode: none }

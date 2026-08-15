@@ -101,7 +101,19 @@ class TemporalGraphData:
             ).to(device)
 
 
-def _read_jodie(path: str, max_events: int | None) -> tuple[np.ndarray, ...]:
+def _read_jodie(path: str, max_events: int | None,
+                bipartite: bool = True) -> tuple[np.ndarray, ...]:
+    """Read a JODIE-layout CSV: ``user_id,item_id,timestamp,state_label,<feats>``.
+
+    ``bipartite`` selects the node-id space, and getting it wrong is silent rather
+    than loud. The JODIE datasets (Wikipedia, Reddit, MOOC, LastFM) have disjoint
+    user and item spaces, so ids must be remapped into separate ranges. The
+    single-node-type datasets distributed in the same layout (UCI, Enron, CanParl,
+    UNtrade, ...) reuse one id space, and remapping them as bipartite would split
+    every node into an unconnected "source copy" and "destination copy" --
+    doubling the node count and destroying exactly the recurrence structure this
+    project measures.
+    """
     nrows = max_events if max_events else None
     df = pd.read_csv(path, skiprows=1, header=None, nrows=nrows)
     u = df.iloc[:, 0].to_numpy()
@@ -109,7 +121,39 @@ def _read_jodie(path: str, max_events: int | None) -> tuple[np.ndarray, ...]:
     t = df.iloc[:, 2].to_numpy(dtype=np.float64)
     feat = df.iloc[:, 4:].to_numpy(dtype=np.float32) if df.shape[1] > 4 \
         else np.zeros((len(u), 1), dtype=np.float32)
-    return u, i, t, feat, True  # bipartite=True
+    return u, i, t, feat, bipartite
+
+
+def _read_dgb(path: str, max_events: int | None) -> tuple[np.ndarray, ...]:
+    """Read a DGB/TGN-preprocessed ``ml_<name>.csv`` plus its edge-feature ``.npy``.
+
+    Layout is ``<row index>,u,i,ts,label,idx`` -- an unnamed index column shifts
+    every field one place relative to the raw JODIE layout, so reading it with the
+    JODIE reader would silently take ``u`` as the timestamp. Edge features live in
+    ``ml_<name>.npy``, whose row 0 is TGN's padding row and whose row ``idx``
+    belongs to the edge with that ``idx`` (1-based).
+
+    Several of these graphs carry no attributes at all and DGB stores them as
+    zero matrices of a nominal width (UCI as 100 columns, Enron as 32). Those are
+    collapsed to a single zero column: keeping them would advertise a feature
+    dimensionality the data does not have, and would let a reader mistake an
+    attribute-free graph for a feature-rich one.
+    """
+    df = pd.read_csv(path, nrows=max_events if max_events else None)
+    u = df["u"].to_numpy()
+    i = df["i"].to_numpy()
+    t = df["ts"].to_numpy(dtype=np.float64)
+
+    feat_path = os.path.splitext(path)[0] + ".npy"
+    feat = None
+    if os.path.isfile(feat_path):
+        raw = np.load(feat_path)
+        idx = df["idx"].to_numpy(dtype=np.int64)
+        if idx.max() < len(raw):
+            feat = raw[idx].astype(np.float32)
+    if feat is None or np.allclose(feat, 0.0):
+        feat = np.zeros((len(u), 1), dtype=np.float32)
+    return u, i, t, feat, False        # DGB single-node-type graphs share one id space
 
 
 def _read_bitcoinotc(path: str, max_events: int | None) -> tuple[np.ndarray, ...]:
@@ -126,13 +170,21 @@ def load_dataset(root: str, name: str, fmt: str = "jodie",
                  max_events: int | None = None,
                  val_ratio: float = 0.15, test_ratio: float = 0.15) -> TemporalGraphData:
     """Load a dataset by name from ``root`` and return a :class:`TemporalGraphData`."""
-    fname = {"bitcoinotc": "bitcoinotc.csv"}.get(name, f"{name}.csv")
-    path = os.path.join(root, fname)
+    if fmt == "dgb":                    # ships as <root>/<name>/ml_<name>.csv
+        path = os.path.join(root, name, f"ml_{name}.csv")
+    else:
+        fname = {"bitcoinotc": "bitcoinotc.csv"}.get(name, f"{name}.csv")
+        path = os.path.join(root, fname)
     if not os.path.isfile(path):
         raise FileNotFoundError(f"dataset file not found: {path}")
 
-    if fmt == "bitcoinotc":
+    if fmt == "dgb":
+        u, i, t, feat, bipartite = _read_dgb(path, max_events)
+    elif fmt == "bitcoinotc":
         u, i, t, feat, bipartite = _read_bitcoinotc(path, max_events)
+    elif fmt == "jodie_unipartite":
+        # same file layout, one shared node-id space (DGB single-node-type graphs)
+        u, i, t, feat, bipartite = _read_jodie(path, max_events, bipartite=False)
     else:
         u, i, t, feat, bipartite = _read_jodie(path, max_events)
 
