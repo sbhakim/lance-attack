@@ -41,6 +41,11 @@ def main() -> None:
                     help="fraction of historical negatives at eval (TGB-style, 0..1)")
     ap.add_argument("--victim", choices=list(_VICTIMS), default="tgnlite",
                     help="victim architecture; the surrogate is always TGNLite")
+    ap.add_argument("--surrogate", choices=list(_VICTIMS), default="tgnlite",
+                    help="architecture the attacker builds its perturbation "
+                         "against (default tgnlite); differing from --victim is "
+                         "the transfer setting. Meta-gradient attacks require "
+                         "tgnlite")
     ap.add_argument("--knowledge", choices=["k1", "k2"], default=None,
                     help="attacker knowledge: k1 sees the whole training stream, "
                          "k2 only the observable prefix (surrogate, Impact, "
@@ -79,8 +84,9 @@ def main() -> None:
     spec = GridSpec(attacks=args.attacks, defenses=args.defenses, seeds=args.seeds)
     _LOG.info(f"benchmark {cfg.data.name}: defenses={args.defenses} "
               f"attacks={args.attacks} seeds={args.seeds} epochs={cfg.train.epochs} "
-              f"victim={args.victim}")
-    result = run_grid(cfg, spec, victim_cls=_VICTIMS[args.victim])
+              f"surrogate={args.surrogate} victim={args.victim}")
+    result = run_grid(cfg, spec, victim_cls=_VICTIMS[args.victim],
+                      surrogate_cls=_VICTIMS[args.surrogate])
     md = to_markdown(result)
     print("\n" + md + "\n")
 

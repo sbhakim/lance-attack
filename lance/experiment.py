@@ -39,7 +39,7 @@ _META_ATTACKS = {"lance_meta", "lance_meta_inject", "lance_meta_delete",
                  "lance_meta_hard"}
 
 
-def _provenance(victim_cls, device) -> dict:
+def _provenance(victim_cls, device, surrogate_cls=TGNLite) -> dict:
     """Record what produced these numbers.
 
     A stored config is not enough to identify a run: two artifacts with byte-
@@ -57,7 +57,7 @@ def _provenance(victim_cls, device) -> dict:
         "git_sha": sha,
         "git_dirty": dirty,
         "victim": victim_cls.__name__,
-        "surrogate": TGNLite.__name__,
+        "surrogate": surrogate_cls.__name__,
         "torch": torch.__version__,
         "cuda": torch.version.cuda,
         "device": str(device),
@@ -74,8 +74,11 @@ class GridSpec:
     seeds: list[int]
 
 
-def _model(cfg, data):
-    """The attacker's surrogate is always the memory-based TGNLite."""
+def _model(cfg, data, model_cls=TGNLite):
+    """Build a model. Only TGNLite consumes the model config; the memory-free
+    families take their own defaults."""
+    if model_cls is not TGNLite:
+        return model_cls(data.num_nodes, data.num_feats)
     m = cfg.model
     return TGNLite(data.num_nodes, data.num_feats, m.memory_dim, m.time_dim,
                    m.embedding_dim, m.predictor_hidden, m.dropout)
@@ -112,7 +115,14 @@ def _train_test(cfg, data, defense_mode, device, history=None,
 
 
 def run_grid(cfg, spec: GridSpec, device: str | None = None,
-             victim_cls=TGNLite) -> dict:
+             victim_cls=TGNLite, surrogate_cls=TGNLite) -> dict:
+    """Run the (defense x attack x seed) grid.
+
+    ``surrogate_cls`` is the family the attacker builds its perturbation against
+    and ``victim_cls`` the family it is evaluated on; transfer is the case where
+    they differ. Varying the surrogate tests whether a finding is a property of
+    the attack or of one attacker architecture.
+    """
     device = device or resolve_device(cfg.train.device)
     # cell[(defense, attack)] -> list of metric dicts across seeds
     cells: dict[tuple[str, str], list[dict]] = {}
@@ -158,7 +168,7 @@ def run_grid(cfg, spec: GridSpec, device: str | None = None,
         # attacker's surrogate (clean undefended) + importance map
         seed_everything(seed, deterministic=True)
         if know == "k1":
-            surrogate = _model(cfg, data)
+            surrogate = _model(cfg, data, surrogate_cls)
             Trainer(surrogate, cfg, device=device).fit(data, defense=None, verbose=False)
             surrogate.reset_state(device)
             for b in data.iter_batches("train", cfg.train.batch_size, device):
@@ -169,7 +179,8 @@ def run_grid(cfg, spec: GridSpec, device: str | None = None,
             # trained and warmed on the prefix only (same routine the K2
             # orchestrator uses, so benchmark and orchestrator agree)
             score_fn, surrogate = _build_surrogate_score_fn(
-                (s, d, t, f), data.num_nodes, data.num_feats, cfg, device)
+                (s, d, t, f), data.num_nodes, data.num_feats, cfg, device,
+                model_cls=surrogate_cls)
         impact = compute_impact(s, d, data.num_nodes, cfg.attack.impact_weights,
                                 cfg.attack.betweenness_k)
 
@@ -177,6 +188,12 @@ def run_grid(cfg, spec: GridSpec, device: str | None = None,
         # to estimate each edit's marginal effect on the victim ranking loss.
         grad_scorer = None
         if any(a in _META_ATTACKS for a in spec.attacks):
+            if surrogate_cls is not TGNLite:
+                raise ValueError(
+                    "meta-gradient attacks differentiate the ranking loss with "
+                    "respect to a per-node memory, which only TGNLite has; drop "
+                    f"{sorted(_META_ATTACKS & set(spec.attacks))} or use "
+                    "--surrogate tgnlite")
             grad_scorer = MetaGradientScorer(
                 surrogate, s, d, t, f, data.num_nodes, device,
                 hist_frac=cfg.eval.historical_neg_frac or 0.7, seed=seed)
@@ -234,7 +251,7 @@ def run_grid(cfg, spec: GridSpec, device: str | None = None,
         _LOG.info(f"seed {seed} done (clean MRR={clean['mrr']:.4f})")
 
     return _aggregate(cfg, spec, cells, clean_ref, retention, attack_edits,
-                      provenance=_provenance(victim_cls, device))
+                      provenance=_provenance(victim_cls, device, surrogate_cls))
 
 
 def _agg(vals):

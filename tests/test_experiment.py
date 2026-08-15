@@ -107,3 +107,30 @@ def test_paired_degradation_reports_effect_and_interval():
     assert result["ci95_low"] > 0.0
     assert 0.0 <= result["paired_t_p"] <= 1.0
     assert len(result["per_seed"]) == 5
+
+
+def test_surrogate_family_is_configurable_and_recorded(tiny_data, tiny_cfg, monkeypatch):
+    """The attacker's architecture must be a variable, not a constant.
+
+    Every result until now used one surrogate family, so a finding could have been
+    a property of that attacker rather than of the attack. Provenance records the
+    choice, because two artifacts are not comparable across it.
+    """
+    from lance.models import GraphMixerLite
+    monkeypatch.setattr(exp, "load_dataset", lambda *a, **k: tiny_data)
+    tiny_cfg.defense.mode = "none"
+    spec = GridSpec(attacks=["none", "lance"], defenses=["none"], seeds=[0])
+    result = run_grid(tiny_cfg, spec, device="cpu", surrogate_cls=GraphMixerLite)
+    assert result["provenance"]["surrogate"] == "GraphMixerLite"
+    assert result["provenance"]["victim"] == "TGNLite"
+
+
+def test_meta_attacks_reject_a_surrogate_without_memory(tiny_data, tiny_cfg, monkeypatch):
+    """Fail loudly rather than deep inside the scorer with an attribute error."""
+    import pytest
+    from lance.models import GraphMixerLite
+    monkeypatch.setattr(exp, "load_dataset", lambda *a, **k: tiny_data)
+    tiny_cfg.defense.mode = "none"
+    spec = GridSpec(attacks=["none", "lance_meta"], defenses=["none"], seeds=[0])
+    with pytest.raises(ValueError, match="only TGNLite"):
+        run_grid(tiny_cfg, spec, device="cpu", surrogate_cls=GraphMixerLite)

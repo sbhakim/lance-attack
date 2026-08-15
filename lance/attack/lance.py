@@ -378,9 +378,14 @@ def adaptive_hybrid_attack(src, dst, t, feat, num_nodes, impact, score_fn,
     return result
 
 
-def _build_surrogate_score_fn(obs, num_nodes, num_feats, cfg, device):
-    """Train a surrogate TGN on the observed prefix ``obs`` and return a score_fn
-    plus the warmed model (the limited-knowledge surrogate)."""
+def _build_surrogate_score_fn(obs, num_nodes, num_feats, cfg, device,
+                              model_cls=None):
+    """Train a surrogate on the observed prefix ``obs`` and return a score_fn
+    plus the warmed model (the limited-knowledge surrogate).
+
+    ``model_cls`` defaults to :class:`TGNLite`. Only TGNLite consumes the model
+    config; the memory-free families take their own defaults, mirroring how the
+    benchmark builds victims."""
     s, d, t, f = obs
     n = len(s)
     v = max(2, int(0.1 * n))
@@ -390,9 +395,11 @@ def _build_surrogate_score_fn(obs, num_nodes, num_feats, cfg, device):
         (s[n - v:], d[n - v:], t[n - v:], f[n - v:]),
         (s[n - v:], d[n - v:], t[n - v:], f[n - v:]),
     )
+    model_cls = model_cls or TGNLite
     m = cfg.model
-    surr = TGNLite(num_nodes, num_feats, m.memory_dim, m.time_dim,
-                   m.embedding_dim, m.predictor_hidden, m.dropout)
+    surr = (TGNLite(num_nodes, num_feats, m.memory_dim, m.time_dim,
+                    m.embedding_dim, m.predictor_hidden, m.dropout)
+            if model_cls is TGNLite else model_cls(num_nodes, num_feats))
     scfg = copy.deepcopy(cfg)
     scfg.defense.mode = "none"
     Trainer(surr, scfg, device=device).fit(sub, defense=None, verbose=False)
