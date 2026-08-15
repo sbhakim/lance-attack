@@ -13,13 +13,16 @@ defense=none) and, as an extension, DT-SHIELD's robustness recovery.
 from __future__ import annotations
 
 import copy
+import platform
+import subprocess
 from dataclasses import dataclass
 
 import numpy as np
 import torch
 from scipy import stats
 
-from lance.attack import compute_impact, run_attack
+from lance.attack import compute_impact, deletion_coverage, run_attack
+from lance.attack.lance import _append_clean_suffix, _build_surrogate_score_fn
 from lance.attack.meta import MetaGradientScorer
 from lance.data import load_dataset
 from lance.data.dataset import TemporalGraphData
@@ -34,6 +37,34 @@ _LOG = get_logger()
 # Attacks whose edit scoring needs the differentiable surrogate (meta-gradient).
 _META_ATTACKS = {"lance_meta", "lance_meta_inject", "lance_meta_delete",
                  "lance_meta_hard"}
+
+
+def _provenance(victim_cls, device) -> dict:
+    """Record what produced these numbers.
+
+    A stored config is not enough to identify a run: two artifacts with byte-
+    identical configs can come from different code and different victims. Every
+    field here is something that changed a reported number at least once.
+    """
+    try:
+        sha = subprocess.check_output(["git", "rev-parse", "HEAD"],
+                                      stderr=subprocess.DEVNULL).decode().strip()
+        dirty = bool(subprocess.check_output(["git", "status", "--porcelain"],
+                                             stderr=subprocess.DEVNULL).decode().strip())
+    except Exception:                      # not a checkout, or git unavailable
+        sha, dirty = None, None
+    return {
+        "git_sha": sha,
+        "git_dirty": dirty,
+        "victim": victim_cls.__name__,
+        "surrogate": TGNLite.__name__,
+        "torch": torch.__version__,
+        "cuda": torch.version.cuda,
+        "device": str(device),
+        "gpu": torch.cuda.get_device_name(0) if torch.cuda.is_available() else None,
+        "deterministic_algorithms": torch.are_deterministic_algorithms_enabled(),
+        "python": platform.python_version(),
+    }
 
 
 @dataclass
@@ -90,7 +121,7 @@ def run_grid(cfg, spec: GridSpec, device: str | None = None,
     attack_edits: dict[str, list[dict]] = {a: [] for a in spec.attacks if a != "none"}
 
     for seed in spec.seeds:
-        seed_everything(seed)
+        seed_everything(seed, deterministic=True)
         cfg.train.seed = seed
         data = load_dataset(cfg.data.root, cfg.data.name, cfg.data.fmt,
                             cfg.data.max_events, cfg.data.val_ratio, cfg.data.test_ratio)
@@ -105,18 +136,42 @@ def run_grid(cfg, spec: GridSpec, device: str | None = None,
                             clean_dst_pool, victim_cls=victim_cls)
         clean_ref.append(clean["mrr"])
 
+        # Knowledge regime. K1 lets the attacker see the whole training stream;
+        # K2 restricts it to the observable prefix <= t_a, so the surrogate, the
+        # Impact map, the candidate pool and the budget are all prefix-derived
+        # and the hidden suffix is appended untouched afterwards. Anything the
+        # attacker is given here is what the threat model actually grants it.
+        s_all, d_all, t_all, f_all = data.split("train")
+        know = getattr(cfg.attack, "knowledge", "k1")
+        if know not in {"k1", "k2"}:
+            raise ValueError(f"benchmark supports knowledge k1|k2, got {know!r}")
+        cut = (len(s_all) if know == "k1"
+               else max(10, int(cfg.attack.lk_cutoff_frac * len(s_all))))
+        s, d, t, f = s_all[:cut], d_all[:cut], t_all[:cut], f_all[:cut]
+        # ``run_attack`` derives the budget from the stream it is handed, so a
+        # prefix-relative budget needs no adjustment; a K1-matched budget is
+        # expressed by rescaling the rate against the shorter prefix.
+        ptb_rate = cfg.attack.ptb_rate
+        if know == "k2" and getattr(cfg.attack, "k2_budget", "prefix") == "matched":
+            ptb_rate = cfg.attack.ptb_rate * len(s_all) / max(cut, 1)
+
         # attacker's surrogate (clean undefended) + importance map
         seed_everything(seed, deterministic=True)
-        surrogate = _model(cfg, data)
-        Trainer(surrogate, cfg, device=device).fit(data, defense=None, verbose=False)
-        surrogate.reset_state(device)
-        for b in data.iter_batches("train", cfg.train.batch_size, device):
-            if len(b):
-                surrogate.advance_memory(b)
-        s, d, t, f = data.split("train")
+        if know == "k1":
+            surrogate = _model(cfg, data)
+            Trainer(surrogate, cfg, device=device).fit(data, defense=None, verbose=False)
+            surrogate.reset_state(device)
+            for b in data.iter_batches("train", cfg.train.batch_size, device):
+                if len(b):
+                    surrogate.advance_memory(b)
+            score_fn = _make_score_fn(surrogate, device)
+        else:
+            # trained and warmed on the prefix only (same routine the K2
+            # orchestrator uses, so benchmark and orchestrator agree)
+            score_fn, surrogate = _build_surrogate_score_fn(
+                (s, d, t, f), data.num_nodes, data.num_feats, cfg, device)
         impact = compute_impact(s, d, data.num_nodes, cfg.attack.impact_weights,
                                 cfg.attack.betweenness_k)
-        score_fn = _make_score_fn(surrogate, device)
 
         # Meta-gradient scorer (built once per seed) reuses the warmed surrogate
         # to estimate each edit's marginal effect on the victim ranking loss.
@@ -126,19 +181,40 @@ def run_grid(cfg, spec: GridSpec, device: str | None = None,
                 surrogate, s, d, t, f, data.num_nodes, device,
                 hist_frac=cfg.eval.historical_neg_frac or 0.7, seed=seed)
 
+        # Test endpoints, used two ways: by the oracle bound to rank edges, and
+        # afterwards to score every attack's deletions on the same coverage scale.
+        # Nothing here feeds a legitimate attack's selection.
+        test_s, test_d = data.split("test")[0], data.split("test")[1]
+
         # poison the train stream with each attack (val/test stay clean)
         poisoned: dict[str, TemporalGraphData] = {}
         for atk in spec.attacks:
             res = run_attack(atk, s, d, t, f, data.num_nodes, impact=impact,
-                             score_fn=score_fn, ptb_rate=cfg.attack.ptb_rate, seed=seed,
+                             score_fn=score_fn, ptb_rate=ptb_rate, seed=seed,
+                             test_ref=(test_s, test_d),
                              high_impact_frac=cfg.attack.high_impact_frac,
                              del_percentile=cfg.attack.del_percentile,
                              inj_percentile=cfg.attack.inj_percentile,
                              grad_scorer=grad_scorer)
             if res is not None:
+                if know == "k2":
+                    # the hidden suffix was never observable, never editable,
+                    # and is re-appended exactly as it was
+                    res = _append_clean_suffix(res, s_all[cut:], d_all[cut:],
+                                               t_all[cut:], f_all[cut:])
+                # Which clean training events survived tells us what was deleted,
+                # so coverage is measurable for every attack, not just the oracle.
+                kept = set(zip(res.src.tolist(), res.dst.tolist(), res.t.tolist()))
+                deleted_idx = np.array(
+                    [i for i, key in enumerate(zip(s.tolist(), d.tolist(), t.tolist()))
+                     if key not in kept], dtype=np.int64)
+                cov = deletion_coverage(s, d, data.num_nodes, test_s, test_d,
+                                        deleted_idx)
+                diag = dict(res.diagnostics or {})
+                diag["deletion_coverage"] = cov
                 attack_edits[atk].append({"seed": seed, "deleted": res.n_deleted,
                                           "injected": res.n_injected,
-                                          "diagnostics": res.diagnostics})
+                                          "diagnostics": diag})
             poisoned[atk] = data if res is None else TemporalGraphData.from_splits(
                 data.num_nodes, data.num_feats, (res.src, res.dst, res.t, res.feat),
                 data.split("val"), data.split("test"))
@@ -157,7 +233,8 @@ def run_grid(cfg, spec: GridSpec, device: str | None = None,
                 cells.setdefault((dfn, atk), []).append(m)
         _LOG.info(f"seed {seed} done (clean MRR={clean['mrr']:.4f})")
 
-    return _aggregate(cfg, spec, cells, clean_ref, retention, attack_edits)
+    return _aggregate(cfg, spec, cells, clean_ref, retention, attack_edits,
+                      provenance=_provenance(victim_cls, device))
 
 
 def _agg(vals):
@@ -189,7 +266,8 @@ def paired_degradation(clean, attacked) -> dict:
             "wilcoxon_p": w_p, "per_seed": diff.tolist()}
 
 
-def _aggregate(cfg, spec, cells, clean_ref, retention, attack_edits) -> dict:
+def _aggregate(cfg, spec, cells, clean_ref, retention, attack_edits,
+               provenance=None) -> dict:
     clean_mu, clean_sd = _agg(clean_ref)
     rows = []
     # undefended-on-attack MRR per attack (denominator anchor for recovery)
@@ -216,7 +294,7 @@ def _aggregate(cfg, spec, cells, clean_ref, retention, attack_edits) -> dict:
             "clean_mrr_per_seed": clean_ref, "retention_per_seed": retention,
             "attack_edits": attack_edits,
             "hits_k": k, "rows": rows, "seeds": spec.seeds,
-            "config": cfg.to_dict()}
+            "config": cfg.to_dict(), "provenance": provenance or {}}
 
 
 def to_markdown(result: dict) -> str:
