@@ -26,6 +26,11 @@ artifacts/**
 # committed under datasets/.
 /data/
 *.csv
+# DGB/TGN-preprocessed benchmarks ship edge-feature .npy sidecars (tens of MB each)
+# and arrive as .zip; neither was covered by the *.csv rule above.
+*.npy
+*.npz
+*.zip
 !datasets/**
 
 # Documentation: keep only README.md (no other Markdown, incl. result tables)
