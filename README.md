@@ -150,11 +150,12 @@ validity, strict-K2 isolation, component ablations, and diagnostic serialization
 
 ```bibtex
 @misc{hakim2026lance,
-  author = {Safayat Bin Hakim},
-  title  = {LANCE: A Limited-Knowledge Adaptive Poisoning Study for
-            Temporal Graph Neural Networks},
+  author = {Safayat Bin Hakim and Wenkai Tan and Stefani Mancas and
+            Sirani Mututhanthrige Perera and Houbing Herbert Song},
+  title  = {Targeted Deletion Transfers, Injected Noise Does Not:
+            Channel-Asymmetric Poisoning of Temporal Graph Neural Networks},
   year   = {2026},
-  note   = {Research prototype},
+  note   = {Research prototype; code for the LANCE attack and evaluation harness},
   url    = {https://github.com/sbhakim/lance-attack}
 }
 ```
