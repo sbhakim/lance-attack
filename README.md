@@ -80,14 +80,16 @@ gates use K1. DT-SHIELD, a deletion-aware defense, is a future extension.
 
 ```text
 lance/
-├── attack/     # HIA, LANCE adaptive-hybrid core, meta-gradient scorer, baselines
-├── models/     # TGNLite: memory-based TGN + link predictor + time encoding
+├── attack/     # HIA, LANCE core, meta-gradient scorer, baselines,
+│               #   coverage diagnostic + coverage-maximising reference
+├── models/     # TGNLite (memory), GraphMixerLite (mixer), TGATLite (attention),
+│               #   EdgeBankLite (memorization reference), link predictor
 ├── training/   # TBPTT trainer (predict-then-update; no self-leakage)
 ├── eval/       # tie-aware MRR/Hit@k, historical-negative ranking
 ├── defense/    # DT-SHIELD components (defensive extension)
-└── data/       # temporal-graph loaders, negative sampling
+└── data/       # temporal-graph loaders (JODIE and DGB), negative sampling
 configs/         # per-dataset YAML
-scripts/         # train / attack / benchmark entry points
+scripts/         # train / attack / benchmark / scalability / summarize_gates
 tests/           # unit and invariant tests
 ```
 
@@ -103,11 +105,15 @@ pip install python-igraph leidenalg
 
 ## Data
 
-LANCE uses public continuous-time benchmarks (JODIE/SNAP): MOOC, Wikipedia,
-LastFM, and Bitcoin-OTC. Datasets are **not** bundled. Download the CSVs and place
-them where each config's `data.root` points — by default `../Dataset` (a sibling
-of the repository), e.g. `../Dataset/mooc.csv` — or edit `data.root` in
-`configs/*.yaml`.
+LANCE uses public continuous-time benchmarks. The reported gates use five
+JODIE/SNAP datasets — **MOOC, Wikipedia, Reddit, LastFM, Bitcoin-OTC** — and the
+loader additionally reads the single-node-type graphs distributed with
+[DGB](https://zenodo.org/record/7213796) (UCI, Enron, CanParl, UNtrade) via
+`fmt: dgb`.
+
+Datasets are **not** bundled. Download them and point each config's `data.root` at
+the directory — by default `../Dataset` (a sibling of the repository), e.g.
+`../Dataset/mooc.csv`.
 
 ## Quickstart
 
@@ -115,30 +121,49 @@ of the repository), e.g. `../Dataset/mooc.csv` — or edit `data.root` in
 # Train and evaluate a clean victim
 python scripts/train.py --config configs/mooc.yaml
 
-# Run the full LANCE attack under limited knowledge (K2) and report the
-# clean-vs-attacked gap (the surrogate is built from the observable prefix only)
+# Run the standalone attack orchestrator (K2 builds the surrogate from the
+# observable prefix only; the reported gates use K1 -- see Highlights)
 python scripts/run_lance.py --config configs/mooc.yaml --knowledge k2 --ptb-rate 0.3
 
-# Run a paired attack benchmark (defense × attack × seed grid)
+# Run a paired benchmark (attack × seed grid) against an unseen victim
 python scripts/benchmark.py --config configs/mooc.yaml \
     --defenses none \
-    --attacks none random random_delete random_inject hia lance \
-    --seeds 0 1 --epochs 12 --ptb-rate 0.3 --hist-neg 0.7
+    --attacks none random_delete lance lance_delete \
+    --seeds 0 1 --epochs 12 --ptb-rate 0.3 --hist-neg 0.7 --victim graphmixer
 ```
 
-Each benchmark writes a Markdown summary and a JSON record — per-seed metrics,
-edit counts, statistical tests, and attack diagnostics — under `artifacts/`
-(regenerable, and excluded from version control).
+Each benchmark writes a Markdown summary and a JSON record — per-seed metrics, edit
+counts, statistical tests, attack diagnostics, and the run's provenance (git SHA,
+victim, surrogate, library and device versions, determinism state) — under
+`artifacts/` (regenerable, and excluded from version control).
 
-### Reproducing the corrected effectiveness gate
+### Reproducing the reported gates
+
+The paper's numbers come from one deterministic run set: five datasets against three
+victims, on a single code revision. Determinism is on by default — repeated runs are
+bit-identical, which matters because seeding alone is not sufficient (see Highlights).
 
 ```bash
-python scripts/benchmark.py --config configs/mooc.yaml \
-    --defenses none \
-    --attacks none random random_delete random_inject hia lance \
-    --seeds 0 1 2 3 4 --epochs 12 --max-events 40000 \
-    --ptb-rate 0.3 --hist-neg 0.7
+# white-box (victim = surrogate family) and the two unseen victims
+for V in tgnlite graphmixer tgat; do
+  python scripts/benchmark.py --config configs/mooc.yaml --defenses none \
+      --attacks none random random_delete random_inject hia lance \
+                lance_delete lance_random_target lance_meta \
+      --seeds 0 1 2 3 4 --epochs 12 --max-events 40000 \
+      --ptb-rate 0.3 --hist-neg 0.7 --victim $V --out artifacts/gate_mooc_$V
+done
+
+# aggregate: per-cell table, T(a)/R(a), BH-corrected significance
+python scripts/summarize_gates.py artifacts/gate_mooc_*
 ```
+
+`summarize_gates.py` refuses to average across runs that differ in protocol or code
+revision, so a clean run is itself evidence the cells are comparable.
+
+Other axes use the same entry point: `--surrogate {tgnlite,graphmixer,tgat}` changes
+the architecture the attacker models, `--knowledge {k1,k2}` with
+`--k2-budget {prefix,matched}` selects the knowledge regime, `--victim edgebank` gives
+the memorization reference, and `--ptb-rate` sweeps the budget.
 
 ## Testing
 
@@ -146,8 +171,11 @@ python scripts/benchmark.py --config configs/mooc.yaml \
 pytest -q
 ```
 
-The suite covers data loading, model contracts, ranking metrics, candidate
-validity, strict-K2 isolation, component ablations, and diagnostic serialization.
+52 tests cover data loading, model contracts, ranking metrics, candidate validity,
+prefix (K2) isolation and budget conventions, **budget parity across the whole attack
+registry**, surrogate configurability, the coverage diagnostic, component ablations,
+and diagnostic serialization. Two of them exist because they caught defects that had
+already influenced reported numbers.
 
 ## Citation
 
