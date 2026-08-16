@@ -164,6 +164,16 @@ validity, strict-K2 isolation, component ablations, and diagnostic serialization
 
 Released under the MIT License; see [`LICENSE`](LICENSE).
 
+## Contact
+
+Questions, bug reports and reproduction issues are best raised as a
+[GitHub issue](https://github.com/sbhakim/lance-attack/issues), which keeps the
+answer visible to the next person who hits the same problem.
+
+For anything that does not belong in public, write to
+`safayat.b.hakim [at] gmail [dot] com` (replace the bracketed words with the
+usual symbols).
+
 ## Acknowledgments
 
 Supported by the NSF Industry–University Cooperative Research Center (I/UCRC) CARTA.
