@@ -19,4 +19,12 @@ The package is organised by responsibility:
   - ``lance.utils``    : seeding and logging helpers
 """
 
+import os as _os
+
+# cuBLAS reads this once, when the CUDA context is created, so it has to be set
+# before torch initialises CUDA. Without it, ``torch.use_deterministic_algorithms``
+# raises on the first affected matmul. Setting it here makes ``seed_everything``
+# usable from any entry point (scripts, tests, notebooks).
+_os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+
 __version__ = "0.1.0"

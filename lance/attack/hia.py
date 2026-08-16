@@ -60,10 +60,17 @@ def hia_attack(src: np.ndarray, dst: np.ndarray, t: np.ndarray, feat: np.ndarray
     to_delete = np.array([], dtype=np.int64)
     if len(cand_idx) > 0 and n_del > 0:
         yhat = score_fn(src[cand_idx], dst[cand_idx], t[cand_idx])
-        cut = np.percentile(yhat, del_percentile)
-        strong = cand_idx[yhat >= cut]
-        order = np.argsort(-score_fn(src[strong], dst[strong], t[strong])) if len(strong) else []
-        to_delete = strong[order][:n_del] if len(strong) else np.array([], dtype=np.int64)
+        # Rank by surrogate likelihood and take the top ``n_del``. An earlier
+        # version first hard-filtered to the ``del_percentile`` tail and only then
+        # took the top ``n_del``, which silently starved the budget whenever the
+        # tail held fewer than ``n_del`` edges: HIA deleted 2,787 of 4,200 on
+        # Wikipedia and 4,198 of 4,200 on MOOC, so the baseline was handicapped by
+        # an amount that varied per dataset. Taking the top ``n_del`` by likelihood
+        # is what the percentile was expressing anyway -- it selects exactly the
+        # same edges whenever the tail is large enough, and fills the budget from
+        # the next-highest-likelihood edges when it is not.
+        order = np.argsort(-yhat)
+        to_delete = cand_idx[order][:n_del]
 
     keep = np.ones(n, dtype=bool)
     keep[to_delete] = False
@@ -110,9 +117,19 @@ def hia_attack(src: np.ndarray, dst: np.ndarray, t: np.ndarray, feat: np.ndarray
     adv = np.concatenate([np.zeros(keep.sum(), bool), np.ones(len(inj_s), bool)])
 
     order = np.argsort(new_t, kind="stable")
-    return AttackResult(
+    result = AttackResult(
         src=new_src[order], dst=new_dst[order], t=new_t[order], feat=new_feat[order],
         adv_mask=adv[order], n_deleted=int(len(to_delete)), n_injected=int(len(inj_s)),
         injected_src=inj_s.astype(np.int64), injected_dst=inj_d.astype(np.int64),
         injected_t=inj_t.astype(np.float64),
     )
+    # Budget accounting, so a starved baseline is visible in the artifact rather
+    # than only in an unexplained weak result.
+    result.diagnostics = {
+        "budget": int(budget),
+        "selected_deletions": int(len(to_delete)),
+        "selected_injections": int(len(inj_s)),
+        "candidate_deletions": int(len(cand_idx)),
+        "budget_gate_limited": bool(len(to_delete) + len(inj_s) < budget),
+    }
+    return result

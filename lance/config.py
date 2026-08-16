@@ -63,6 +63,12 @@ class AttackConfig:
     # --- LANCE extensions over HIA ---
     knowledge: str = "k1"             # k1 full | k2 limited-future | k3 streaming
     lk_cutoff_frac: float = 0.7       # K2/K3: surrogate sees only this prefix (events <= t_a)
+    # K2 budget convention. "prefix" spends ptb_rate x |prefix|, so a K2 attacker
+    # both knows less *and* edits less -- realistic, but it conflates the two when
+    # compared against K1. "matched" spends ptb_rate x |train| inside the prefix,
+    # holding the edit count fixed so the comparison isolates the knowledge effect.
+    # Report both before attributing anything to limited knowledge.
+    k2_budget: str = "prefix"         # prefix | matched
     adaptive: bool = True             # adaptive (vs fixed 50/50) inject/delete budget split
     query_aware_injection: bool = False  # score injections with source-future/history proxies
     stream_windows: int = 4           # K3: number of online windows

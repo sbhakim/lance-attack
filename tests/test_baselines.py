@@ -20,7 +20,8 @@ def test_attack_dispatcher_runs_all(tiny_data):
         if name.startswith("lance_meta"):
             continue  # needs a differentiable surrogate; covered in test_meta.py
         res = run_attack(name, s, d, t, f, tiny_data.num_nodes, impact=imp,
-                         score_fn=_score_fn(), ptb_rate=0.15, seed=0)
+                         score_fn=_score_fn(), ptb_rate=0.15, seed=0,
+                         test_ref=tiny_data.split("test")[:2])
         if name == "none":
             assert res is None
         else:
@@ -72,3 +73,41 @@ def test_detection_pr_perfect():
     adv = np.array([True, True, False, False, False])
     pr = detection_pr(suspicion, adv, q=0.4)   # flags top-2
     assert pr["det_recall"] == 1.0 and pr["det_precision"] == 1.0
+
+
+def test_every_budgeted_attack_spends_its_budget(tiny_data, tiny_cfg):
+    """No attack may be handicapped by an internal filter.
+
+    HIA once hard-filtered deletion candidates to a likelihood percentile before
+    applying the budget, so whenever that tail was smaller than the budget it
+    silently under-spent -- 2,787 of 4,200 deletions on Wikipedia against 4,198
+    of 4,200 on MOOC. A baseline that cannot spend its budget loses for the wrong
+    reason, and the shortfall varied per dataset, so it was invisible in any
+    single comparison.
+    """
+    import numpy as np
+    from lance.attack import ATTACKS, compute_impact, run_attack
+
+    src, dst, t, feat = tiny_data.split("train")
+    impact = compute_impact(src, dst, tiny_data.num_nodes,
+                            tiny_cfg.attack.impact_weights, tiny_cfg.attack.betweenness_k)
+    rng = np.random.default_rng(0)
+
+    def score_fn(u, v, tt):                      # deterministic pseudo-likelihood
+        return rng.random(len(u))
+
+    ptb = 0.3
+    budget = int(ptb * len(src))
+    starved = {}
+    for name in ATTACKS:
+        if name == "none" or "meta" in name:      # meta variants need a grad_scorer
+            continue
+        res = run_attack(name, src, dst, t, feat, tiny_data.num_nodes, impact=impact,
+                         score_fn=score_fn, ptb_rate=ptb, seed=0,
+                         test_ref=tiny_data.split("test")[:2])
+        spent = res.n_deleted + res.n_injected
+        if spent < budget - 2:
+            starved[name] = spent
+    assert not starved, (
+        f"budget {budget}, but these attacks under-spent: {starved}. An internal "
+        f"filter is starving them, so they lose for the wrong reason.")
