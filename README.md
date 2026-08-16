@@ -4,15 +4,17 @@
 
 # LANCE
 
-**Limited-knowledge adaptive poisoning of temporal graph neural networks.**
+**Channel-asymmetric poisoning of temporal graph neural networks.**
 
 LANCE is a research framework for studying training-time poisoning attacks against
-temporal GNN link predictors under *realistic* adversary knowledge. It re-implements
-the three components of the High Impact Attack (HIA) — a surrogate model,
-impact-aware target selection, and hybrid edit (injection + deletion) budgeting —
-inside a leakage-safe, reproducible evaluation harness, and adds a first-order
-*damage-aware* edit scorer that ranks candidate edits by their estimated marginal
-effect on the victim's ranking loss.
+temporal GNN link predictors. It re-implements the three components of the High
+Impact Attack (HIA) — a surrogate model, impact-aware target selection, and hybrid
+edit (injection + deletion) budgeting — inside a leakage-safe, reproducible
+evaluation harness, and adds a first-order *damage-aware* edit scorer that ranks
+candidate edits by their estimated marginal effect on the victim's ranking loss.
+Of those three components, the ablation validates impact targeting; adaptive
+budgeting is not distinguishable from a fixed split, and the injection channel does
+not contribute.
 
 The emphasis of this project is measurement. Poisoning results on temporal graphs
 are easy to overstate: random negative sampling can hide deletion effects, unpaired
