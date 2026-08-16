@@ -63,15 +63,16 @@ other.
 ## How it works
 
 <p align="center">
-  <img src="assets/lance-architecture.png" alt="LANCE method: a limited-knowledge surrogate guides targeted edits whose damage transfers to unseen victim architectures" width="100%">
+  <img src="assets/lance-architecture.png" alt="LANCE method: a surrogate guides impact-targeted edits whose damage transfers to unseen victim architectures" width="100%">
 </p>
 
-The attack trains a memory-based surrogate on the observable prefix (K2), scores
-node impact, and spends a small budget on **targeted deletions and injections**. The
-poisoned stream is then evaluated on **victim architectures the attacker never
-sees** — and the main result is that this targeted, deletion-driven poisoning
-**transfers** to those unseen models, where injected noise does not. DT-SHIELD (a
-deletion-aware defense) is a future extension.
+The attack trains a memory-based surrogate, scores node impact, and spends its budget
+on **impact-targeted deletions and injections**. The poisoned stream is then evaluated
+on **victim architectures the attacker never sees**. The main result is that the
+*deletion* channel transfers to those unseen models while injected noise does not —
+and that which channel threatens a model tracks its architecture rather than what the
+attacker knows. K2 (observable-prefix only) is an implemented variant; the reported
+gates use K1. DT-SHIELD, a deletion-aware defense, is a future extension.
 
 ## Repository layout
 
