@@ -22,22 +22,31 @@ construction, and so that every reported number is regenerable from the reposito
 
 ## Status and scope
 
-LANCE is a **research prototype** evaluated in two regimes. In the *white-box*
-setting, where the victim shares the surrogate's architecture, targeted poisoning
-does **not** reliably beat random baselines — an *unlearning gap* (the retrained
-victim absorbs targeted injections while un-fittable random noise persists) explains
-why. In the more realistic *transfer* setting, where the attacker does not know the
-victim's architecture, LANCE is the **most reliably transferable attack across five
-datasets and two victim families**: its targeted deletions of high-impact edges
-damage unseen models where injected noise does not. The contribution is a rigorous,
-leakage-safe evaluation harness plus this transfer finding — and the argument that
-transferability, not white-box strength, is how such attacks should be measured.
+LANCE is a **research prototype**, and its main result is that the two editing
+channels are asymmetric in a way that tracks the *victim's architecture* rather than
+what the attacker knows. Against a memory-based victim, injected noise is the
+strongest attack and deleting real interactions does nothing. Against memory-free
+victims, across five datasets and two victim families, the ordering reverses:
+targeted deletion is the **strongest transferable attack** — roughly twice the best
+undirected control — while injection transfers inconsistently and often *improves*
+the victim.
+
+Two qualifications matter. The claim we defend is **magnitude, not breadth**:
+undifferentiated `random_delete` is positive in as many victim×dataset cells, so
+targeting buys size of effect rather than consistency of it. And the advantage is
+**budgeted**, resolvable from a 10–20% perturbation rate and absent at 5%. The
+contribution is this channel finding plus a reproducible, leakage-safe harness — and
+the argument that a single victim architecture measures one channel and hides the
+other.
 
 ## Highlights
 
-- **Limited-knowledge regimes.** K1 (full-history upper bound), strict K2
-  (observable-prefix only; the hidden suffix cannot influence any edit), and an
-  experimental K3 streaming variant.
+- **Reproducible by construction.** Deterministic kernels, recorded provenance
+  (git SHA, victim, surrogate, library versions) in every artifact, and a summarizer
+  that refuses to average across protocols. Seeding alone left repeats drifting by
+  more than the effects being compared.
+- **Knowledge regimes.** K1 (full history; the setting all reported gates use) and
+  K2 (observable-prefix only, with prefix-relative or K1-matched budget).
 - **Hardened evaluation.** Paired per-seed initialization, fixed clean
   destination/history pools, tie-aware MRR / Hit@*k*, TGB-style historical
   negatives, and paired *t*- and Wilcoxon tests.
@@ -46,9 +55,9 @@ transferability, not white-box strength, is how such attacks should be measured.
   existing events are rejected.
 - **Damage-aware scorer.** A first-order influence scorer (`lance_meta`) that
   ranks edits by alignment with the gradient of the victim's ranking loss.
-- **Fair controls and ablations.** `random`, `random_delete`, `random_inject`,
-  HIA, and component/targeting ablations of LANCE, so no result rests on a weak
-  baseline.
+- **Fair controls and ablations.** `random`, `random_delete`, `random_inject`, HIA,
+  an EdgeBank memorization reference, and component/targeting ablations — with a test
+  asserting every attack spends its full budget, after two were found under-spending.
 - **Pure PyTorch.** No DGL; runs on CPU or a single GPU.
 
 ## How it works
