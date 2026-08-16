@@ -166,7 +166,8 @@ Released under the MIT License; see [`LICENSE`](LICENSE).
 
 ## Contact
 
-Read backwards: `moc.liamg ta mikah.b.tayafas`
+Please open an issue for project questions or contact Safayat Bin Hakim at
+safayat DOT b DOT hakim AT gmail DOT com.
 
 ## Acknowledgments
 
