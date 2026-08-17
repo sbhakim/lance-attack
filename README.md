@@ -6,6 +6,24 @@
 
 **Channel-asymmetric poisoning of temporal graph neural networks.**
 
+## Abstract
+
+Temporal graph neural networks predict who will interact with whom next, from streams
+of timestamped events. This project asks how an attacker who can edit that training
+stream does the most damage — and finds that the answer depends on which model is
+deployed, not on what the attacker knows.
+
+Deleting real interactions damaged every victim family we tested, on every dataset.
+Injecting fake ones did not: on one dataset it is the strongest attack we measured,
+and on others it leaves the victim measurably *better off*. Because the same poisoned
+data supports both readings, evaluating against a single architecture measures one
+channel and conceals the other.
+
+The repository holds the attack, the victim models, and an evaluation harness whose
+runs are bit-identical on repeat.
+
+## Overview
+
 LANCE is a research framework for studying training-time poisoning attacks against
 temporal GNN link predictors. It re-implements the three components of the High
 Impact Attack (HIA) — a surrogate model, impact-aware target selection, and hybrid
@@ -25,13 +43,15 @@ construction, and so that every reported number is regenerable from the reposito
 ## Status and scope
 
 LANCE is a **research prototype**, and its main result is that the two editing
-channels are asymmetric in a way that tracks the *victim's architecture* rather than
-what the attacker knows. Against a memory-based victim, injected noise is the
-strongest attack and deleting real interactions does nothing. Against memory-free
-victims, across five datasets and two victim families, the ordering reverses:
-targeted deletion is the **strongest transferable attack** — roughly twice the best
-undirected control — while injection transfers inconsistently and often *improves*
-the victim.
+channels are asymmetric: deletion damages every victim family on every dataset, while
+injection's sign depends on both the victim's architecture and the data. On MOOC,
+injected noise is the strongest attack against a memory-based victim and deleting
+real interactions does nothing — but that ordering is specific to MOOC, and on
+Reddit, Wikipedia and LastFM the same white-box gate is damaged by deletion and
+*helped* by injection. Against memory-free victims, across five datasets and two
+victim families, targeted deletion is the **strongest transferable attack** — roughly
+twice the best undirected control — while injection transfers inconsistently and
+often improves the victim.
 
 Two qualifications matter. The claim we defend is **magnitude, not breadth**:
 undifferentiated `random_delete` is positive in as many victim×dataset cells, so
@@ -72,8 +92,8 @@ The attack trains a memory-based surrogate, scores node impact, and spends its b
 on **impact-targeted deletions and injections**. The poisoned stream is then evaluated
 on **victim architectures the attacker never sees**. The main result is that the
 *deletion* channel transfers to those unseen models while injected noise does not —
-and that which channel threatens a model tracks its architecture rather than what the
-attacker knows. K2 (observable-prefix only) is an implemented variant; the reported
+and that which channel threatens a model is a property of the model and its data, not
+of what the attacker knows. K2 (observable-prefix only) is an implemented variant; the reported
 gates use K1. DT-SHIELD, a deletion-aware defense, is a future extension.
 
 ## Repository layout
