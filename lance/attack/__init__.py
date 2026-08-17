@@ -1,10 +1,14 @@
 # lance/attack/__init__.py
 """Node-importance scoring, the HIA/LANCE attacks, baselines, and a dispatcher.
 
-LANCE is this project's contribution: an enhanced, limited-knowledge, adaptive
-poisoning attack built on HIA. ``lance_attack`` is the self-contained orchestrator
-(it trains its own limited-knowledge surrogate); ``adaptive_hybrid_attack`` is the
-perturbation core callable with a passed surrogate ``score_fn``.
+LANCE re-implements HIA's three components -- a surrogate, impact-based target
+selection, and hybrid editing -- under the candidate-validity and budget-matching
+constraints this project imposes. A limited-knowledge (K2) path and an adaptive
+budget split are both implemented, but neither carries the reported results: every
+gate in the paper runs K1, and the adaptive split does not measurably beat a fixed
+50/50 one. ``lance_attack`` is the self-contained orchestrator (it trains its own
+surrogate); ``adaptive_hybrid_attack`` is the perturbation core, callable with a
+``score_fn`` the caller supplies.
 """
 from __future__ import annotations
 
