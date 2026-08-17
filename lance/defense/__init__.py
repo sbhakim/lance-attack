@@ -1,3 +1,4 @@
+# lance/defense/__init__.py
 """DT-SHIELD defense: orchestrates C1 (screening), C2 (consistency), C3 (AT).
 
 ``DTShieldDefense`` exposes the duck-typed interface the :class:`Trainer`

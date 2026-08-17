@@ -1,3 +1,4 @@
+# lance/training/trainer.py
 """Training loop with truncated backpropagation through time (TBPTT).
 
 Each batch is scored using memory produced only by earlier batches and memory is

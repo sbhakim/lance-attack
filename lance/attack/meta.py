@@ -1,3 +1,4 @@
+# lance/attack/meta.py
 """First-order gradient scoring of candidate poisoning edits.
 
 The adaptive core in :mod:`lance.attack.lance` ranks edits by a fixed combination

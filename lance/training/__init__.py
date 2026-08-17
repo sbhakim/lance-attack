@@ -1,3 +1,4 @@
+# lance/training/__init__.py
 """Training loops: clean and DT-SHIELD-defended."""
 from lance.training.trainer import Trainer, resolve_device
 

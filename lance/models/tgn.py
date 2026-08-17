@@ -1,3 +1,4 @@
+# lance/models/tgn.py
 """TGNLite: a compact memory-based temporal GNN for link prediction.
 
 The design follows the TGN family with minimal dependencies. Each node holds a

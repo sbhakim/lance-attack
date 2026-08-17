@@ -1,3 +1,4 @@
+# lance/models/graphmixer.py
 """GraphMixerLite: a memory-free temporal link predictor.
 
 This is a deliberately different victim family from :class:`TGNLite`. Instead of a

@@ -1,3 +1,4 @@
+# scripts/evaluate.py
 """CLI: the full clean -> attacked -> defended comparison for one dataset.
 
 Trains a clean victim, poisons the train graph with HIA, then trains an

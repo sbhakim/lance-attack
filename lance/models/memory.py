@@ -1,3 +1,4 @@
+# lance/models/memory.py
 """Time encoding used by the temporal model (Time2Vec / Bochner style)."""
 from __future__ import annotations
 

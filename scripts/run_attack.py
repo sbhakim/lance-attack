@@ -1,3 +1,4 @@
+# scripts/run_attack.py
 """CLI: train a surrogate, run HIA, and report the attacked-vs-clean gap.
 
 Example:

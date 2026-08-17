@@ -1,3 +1,4 @@
+# tests/test_training.py
 """Tests for the trainer, including the adversarial-edge persistence monitor."""
 import torch
 

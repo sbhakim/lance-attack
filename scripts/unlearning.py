@@ -1,3 +1,4 @@
+# scripts/unlearning.py
 """CLI: measure how a poisoned victim treats injected edges over training.
 
 For each attack, this poisons the training stream, trains a victim, and records

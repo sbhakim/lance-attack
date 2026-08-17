@@ -1,3 +1,4 @@
+# lance/defense/consistency.py
 """C2: two-sided temporal-consistency screening.
 
 Normal dynamics are fit on an early, presumed-clean prefix of the stream,

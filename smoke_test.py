@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# smoke_test.py
 """End-to-end smoke test: clean -> HIA-attacked -> DT-SHIELD-defended.
 
 Runs on a small slice of a real dataset so it finishes in seconds, and asserts

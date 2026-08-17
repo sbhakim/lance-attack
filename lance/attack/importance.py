@@ -1,3 +1,4 @@
+# lance/attack/importance.py
 """HIA's node-importance (Impact) score, computed defensively or offensively.
 
     Impact(v) = w1 * temporal_degree_growth(v)

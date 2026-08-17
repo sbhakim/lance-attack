@@ -1,3 +1,4 @@
+# tests/test_model.py
 """Model shape/contract tests and a 'training runs without diverging' check."""
 import numpy as np
 import torch

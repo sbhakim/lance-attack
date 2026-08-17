@@ -1,3 +1,4 @@
+# lance/utils/__init__.py
 """Utility helpers: deterministic seeding and structured logging."""
 from lance.utils.seed import seed_everything
 from lance.utils.logutils import get_logger

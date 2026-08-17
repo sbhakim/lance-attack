@@ -1,3 +1,4 @@
+# lance/models/edgebank.py
 """EdgeBankLite: a non-learned memorization baseline for temporal link prediction.
 
 EdgeBank predicts a link purely from whether the pair has been seen before

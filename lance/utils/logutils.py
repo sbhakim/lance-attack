@@ -1,3 +1,4 @@
+# lance/utils/logutils.py
 """Lightweight structured logging used across the package."""
 from __future__ import annotations
 

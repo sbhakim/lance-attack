@@ -1,3 +1,4 @@
+# scripts/scalability.py
 """CLI: measure attack and training cost as the event stream grows.
 
 For each subsampled stream size this records surrogate/victim training time per

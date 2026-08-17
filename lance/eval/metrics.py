@@ -1,3 +1,4 @@
+# lance/eval/metrics.py
 """MRR and Hit@k, computed with the OGB/TGB tie-aware ranking convention."""
 from __future__ import annotations
 

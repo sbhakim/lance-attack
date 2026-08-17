@@ -1,3 +1,4 @@
+# lance/models/link_predictor.py
 """MLP link decoder: scores an ordered (source, destination) embedding pair."""
 from __future__ import annotations
 

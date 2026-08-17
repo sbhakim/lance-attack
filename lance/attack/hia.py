@@ -1,3 +1,4 @@
+# lance/attack/hia.py
 """HIA (High Impact Attack): a hybrid delete-and-inject poisoning attack.
 
 Given the training stream, a surrogate scoring function ``score_fn`` (link

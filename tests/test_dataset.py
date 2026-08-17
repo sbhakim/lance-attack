@@ -1,3 +1,4 @@
+# tests/test_dataset.py
 """Dataset invariants: chronological order, disjoint splits, perturbed builder."""
 import numpy as np
 

@@ -1,3 +1,4 @@
+# lance/experiment.py
 """Benchmark harness: a paired defense-by-attack comparison over seeds.
 
 For each seed the harness trains an undefended victim on the clean graph (the

@@ -1,3 +1,4 @@
+# lance/defense/baselines.py
 """SOTA / reference defenses, implemented in the same training pipeline so the
 comparison against DT-SHIELD is apples-to-apples.
 

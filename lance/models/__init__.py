@@ -1,3 +1,4 @@
+# lance/models/__init__.py
 """A self-contained, memory-based Temporal GNN and link predictor.
 
 The model mirrors the TGN family (per-node memory updated by a GRU, time

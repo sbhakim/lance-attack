@@ -1,3 +1,4 @@
+# lance/defense/adv_training.py
 """C3 -- importance-guided adversarial training.
 
 Every ``adv_every`` epochs we run the inner HIA attacker against the *current*

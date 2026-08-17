@@ -1,3 +1,4 @@
+# lance/models/tgat.py
 """TGATLite: a memory-free attention-based temporal link predictor.
 
 A third victim family for the transfer study, distinct from both the memory-based

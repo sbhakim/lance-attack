@@ -1,3 +1,4 @@
+# scripts/_common.py
 """Shared helpers for the CLI scripts (path bootstrap + builders)."""
 from __future__ import annotations
 

@@ -1,3 +1,4 @@
+# scripts/benchmark.py
 """CLI: run the defense x attack benchmark grid and write a comparison table.
 
 Example:

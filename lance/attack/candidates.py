@@ -1,3 +1,4 @@
+# lance/attack/candidates.py
 """Shared structural constraints for temporal edge-injection candidates."""
 from __future__ import annotations
 

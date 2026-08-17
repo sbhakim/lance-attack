@@ -1,3 +1,4 @@
+# tests/conftest.py
 """Shared fixtures: a tiny synthetic temporal graph (no disk I/O, CPU-only)."""
 from __future__ import annotations
 

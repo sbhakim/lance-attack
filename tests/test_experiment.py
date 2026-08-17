@@ -1,3 +1,4 @@
+# tests/test_experiment.py
 """Experiment-harness invariants needed for paired attack comparisons."""
 
 import numpy as np

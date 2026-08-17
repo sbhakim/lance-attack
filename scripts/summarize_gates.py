@@ -1,3 +1,4 @@
+# scripts/summarize_gates.py
 """CLI: aggregate benchmark artifacts into the tables the paper reports.
 
 Reads any number of ``benchmark_*.json`` artifacts and emits one row per

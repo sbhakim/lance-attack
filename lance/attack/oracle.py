@@ -1,3 +1,4 @@
+# lance/attack/oracle.py
 """A coverage-maximising deletion reference, and the coverage diagnostic behind it.
 
 Every result in this project is relative: attack A degrades MRR more than attack B.

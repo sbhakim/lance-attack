@@ -1,3 +1,4 @@
+# tests/test_oracle.py
 """Contracts for the oracle deletion bound and the coverage diagnostic.
 
 The oracle is a measurement instrument: other attacks are reported as a fraction

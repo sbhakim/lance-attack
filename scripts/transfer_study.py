@@ -1,3 +1,4 @@
+# scripts/transfer_study.py
 """CLI: two-regime comparison for a fixed attack set.
 
 Runs the same attacks (built against the TGNLite surrogate) against two victims

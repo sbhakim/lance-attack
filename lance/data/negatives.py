@@ -1,3 +1,4 @@
+# lance/data/negatives.py
 """Negative sampling for link prediction.
 
 Following the TGB protocol, two regimes are supported. Random sampling draws

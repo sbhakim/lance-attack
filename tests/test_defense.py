@@ -1,3 +1,4 @@
+# tests/test_defense.py
 """Defense-component contracts: weights in [0,1], HIA perturbs, defense trains."""
 import numpy as np
 

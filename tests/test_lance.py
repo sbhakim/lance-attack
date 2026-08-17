@@ -1,3 +1,4 @@
+# tests/test_lance.py
 """Tests for the LANCE attack: adaptive perturbation core + the K1/K2/K3 orchestrator."""
 import numpy as np
 

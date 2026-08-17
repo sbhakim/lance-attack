@@ -1,3 +1,4 @@
+# scripts/run_lance.py
 """CLI: run the full LANCE poisoning attack and report its effectiveness.
 
 Trains a clean victim (reference), poisons the training graph with LANCE under the

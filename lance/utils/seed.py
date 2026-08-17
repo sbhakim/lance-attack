@@ -1,3 +1,4 @@
+# lance/utils/seed.py
 """Deterministic seeding across Python, NumPy, and PyTorch."""
 from __future__ import annotations
 

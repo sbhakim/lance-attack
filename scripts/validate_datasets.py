@@ -1,3 +1,4 @@
+# scripts/validate_datasets.py
 """Run the same paired attack benchmark across several dataset configs."""
 from __future__ import annotations
 

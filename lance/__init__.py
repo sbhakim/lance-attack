@@ -1,3 +1,4 @@
+# lance/__init__.py
 """LANCE: a Limited-knowledge, Adaptive, Node-importance, Continuous-time Edge-attack.
 
 LANCE is a restricted black-box *poisoning attack* on Temporal Graph Neural

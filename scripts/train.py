@@ -1,3 +1,4 @@
+# scripts/train.py
 """CLI: train a victim TGNN, optionally with the DT-SHIELD defense.
 
 Example:

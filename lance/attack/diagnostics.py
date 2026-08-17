@@ -1,3 +1,4 @@
+# lance/attack/diagnostics.py
 """Read-only summaries of the edits an attack has selected.
 
 These helpers run after selection and do not affect which edits are chosen. The

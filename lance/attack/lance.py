@@ -1,3 +1,4 @@
+# lance/attack/lance.py
 """The LANCE attack orchestrator.
 
 LANCE keeps the three HIA components (a surrogate, impact-based node selection,

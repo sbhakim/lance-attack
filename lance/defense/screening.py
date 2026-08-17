@@ -1,3 +1,4 @@
+# lance/defense/screening.py
 """C1: dual-tail, importance-conditioned edge screening.
 
 At runtime, per training batch, an observed edge ``e=(u,v,t)`` receives an

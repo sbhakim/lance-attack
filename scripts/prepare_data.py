@@ -1,3 +1,4 @@
+# scripts/prepare_data.py
 """CLI: sanity-check / summarize a dataset referenced by a config.
 
 Example:

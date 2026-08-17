@@ -1,3 +1,4 @@
+# lance/config.py
 """Typed configuration objects and a YAML loader.
 
 A single :class:`Config` aggregates data/model/training/attack/defense settings.

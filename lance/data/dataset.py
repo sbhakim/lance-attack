@@ -1,3 +1,4 @@
+# lance/data/dataset.py
 """Continuous-time temporal-graph dataset.
 
 Supports two on-disk formats:

@@ -1,3 +1,4 @@
+# lance/attack/__init__.py
 """Node-importance scoring, the HIA/LANCE attacks, baselines, and a dispatcher.
 
 LANCE is this project's contribution: an enhanced, limited-knowledge, adaptive
