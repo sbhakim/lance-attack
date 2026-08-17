@@ -1,10 +1,16 @@
 # lance/data/dataset.py
 """Continuous-time temporal-graph dataset.
 
-Supports two on-disk formats:
-  * ``jodie``       : SNAP/JODIE CSVs (``user_id,item_id,timestamp,state_label,<feats>``)
-                      used by WIKI / Reddit / MOOC / LastFM.
-  * ``bitcoinotc``  : SNAP signed-network CSV (``source,target,rating,timestamp``).
+Four on-disk formats are supported:
+  * ``jodie``            : SNAP/JODIE CSVs (``user_id,item_id,timestamp,state_label,<feats>``)
+                           used by WIKI / Reddit / MOOC / LastFM.
+  * ``jodie_unipartite`` : the same layout, but both endpoints live in one node
+                           space rather than a user side and an item side.
+  * ``dgb``              : the DGB releases, which ship as
+                           ``<root>/<name>/ml_<name>.csv`` with features alongside
+                           in ``.npy``. Added for the four extra datasets used in
+                           the reoccurrence--surprise check.
+  * ``bitcoinotc``       : SNAP signed-network CSV (``source,target,rating,timestamp``).
 
 Nodes are remapped to a single contiguous id space (users first, then items for
 the bipartite JODIE graphs). Events are sorted chronologically and split 70/15/15
