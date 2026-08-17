@@ -1,10 +1,16 @@
 # scripts/benchmark.py
 """CLI: run the defense x attack benchmark grid and write a comparison table.
 
-Example:
+``--victim`` is what separates the two regimes the paper reports: ``tgnlite`` is
+the white-box gate (same family as the surrogate), while ``graphmixer`` and
+``tgat`` are the unseen victims used for transfer. The surrogate stays TGNLite
+unless ``--surrogate`` says otherwise.
+
+Example -- the white-box gate on MOOC:
     python scripts/benchmark.py --config configs/mooc.yaml \
-        --defenses none tshield cosine dtshield \
-        --attacks none hia hia_adaptive tspear --seeds 0 1 --epochs 10
+        --victim tgnlite --defenses none \
+        --attacks none random_delete random_inject hia lance lance_delete \
+        --seeds 0 1 2 3 4 --epochs 12
 """
 from __future__ import annotations
 
